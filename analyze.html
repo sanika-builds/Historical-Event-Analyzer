@@ -1,0 +1,938 @@
+{% extends "layout.html" %}
+
+{% block title %}Deep Analysis{% endblock %}
+
+{% block content %}
+<div class="analyze-container">
+    <div class="analyze-header">
+        <h1><i class="fas fa-chart-bar"></i> Deep Historical Analysis</h1>
+        <p class="subtitle">Comprehensive analysis of historical documents with AI-powered insights</p>
+    </div>
+
+    <div class="analyze-controls">
+        <div class="control-group">
+            <h3><i class="fas fa-file-alt"></i> Select Document</h3>
+            <div class="document-selector">
+                <select id="documentSelect" class="form-control">
+                    <option value="">Select a processed document...</option>
+                    <!-- Documents will be loaded dynamically -->
+                </select>
+                <div class="document-info" id="documentInfo" style="display: none;">
+                    <p><strong>Selected:</strong> <span id="selectedDocName"></span></p>
+                    <p><strong>Size:</strong> <span id="selectedDocSize"></span></p>
+                    <p><strong>Processed:</strong> <span id="selectedDocDate"></span></p>
+                </div>
+            </div>
+        </div>
+
+        <div class="control-group">
+            <h3><i class="fas fa-cogs"></i> Analysis Options</h3>
+            <div class="options-grid">
+                <label class="option-checkbox">
+                    <input type="checkbox" id="optionSummary" checked>
+                    <span>Generate Summary</span>
+                </label>
+                <label class="option-checkbox">
+                    <input type="checkbox" id="optionKeyPoints" checked>
+                    <span>Extract Key Points</span>
+                </label>
+                <label class="option-checkbox">
+                    <input type="checkbox" id="optionTimeline" checked>
+                    <span>Create Timeline</span>
+                </label>
+                <label class="option-checkbox">
+                    <input type="checkbox" id="optionViewpoints" checked>
+                    <span>Analyze Viewpoints</span>
+                </label>
+                <label class="option-checkbox">
+                    <input type="checkbox" id="optionCauses">
+                    <span>Identify Causes</span>
+                </label>
+                <label class="option-checkbox">
+                    <input type="checkbox" id="optionConsequences">
+                    <span>Identify Consequences</span>
+                </label>
+                <label class="option-checkbox">
+                    <input type="checkbox" id="optionThemes">
+                    <span>Extract Themes</span>
+                </label>
+                <label class="option-checkbox">
+                    <input type="checkbox" id="optionPeople">
+                    <span>Key Figures</span>
+                </label>
+            </div>
+        </div>
+
+        <div class="control-group">
+            <h3><i class="fas fa-tag"></i> Analysis Focus</h3>
+            <div class="topic-input">
+                <input type="text" id="analysisTopic" class="form-control" 
+                       placeholder="Enter specific topic or event (e.g., 'World War 2 causes', 'French Revolution outcomes')">
+                <p class="help-text">Leave blank for general analysis of the entire document</p>
+            </div>
+        </div>
+
+        <button class="btn btn-primary analyze-btn" id="analyzeBtn" onclick="startAnalysis()">
+            <i class="fas fa-play"></i> Start Deep Analysis
+        </button>
+    </div>
+
+    <div class="loading" id="loadingSection" style="display: none;">
+        <div class="loading-spinner"></div>
+        <p class="loading-text" id="loadingText">Analyzing document...</p>
+        <div class="progress-stages">
+            <div class="stage active" id="stage1">Reading Document</div>
+            <div class="stage" id="stage2">Processing Text</div>
+            <div class="stage" id="stage3">Generating Insights</div>
+            <div class="stage" id="stage4">Finalizing Analysis</div>
+        </div>
+    </div>
+
+    <div class="analysis-results" id="analysisResults" style="display: none;">
+        <h2>Analysis Results</h2>
+        <p class="results-subtitle" id="resultsSubtitle"></p>
+        
+        <div class="results-grid">
+            <!-- Summary Panel -->
+            <div class="result-panel" id="summaryPanel" style="display: none;">
+                <div class="panel-header">
+                    <h3><i class="fas fa-file-contract"></i> Summary</h3>
+                    <span class="badge badge-primary" id="summaryLength">0 words</span>
+                </div>
+                <div class="panel-content">
+                    <p id="summaryContent">Loading...</p>
+                </div>
+            </div>
+
+            <!-- Key Points Panel -->
+            <div class="result-panel" id="keyPointsPanel" style="display: none;">
+                <div class="panel-header">
+                    <h3><i class="fas fa-list-ol"></i> Key Points</h3>
+                    <span class="badge badge-primary" id="keyPointsCount">0 points</span>
+                </div>
+                <div class="panel-content">
+                    <ul id="keyPointsList"></ul>
+                </div>
+            </div>
+
+            <!-- Timeline Panel -->
+            <div class="result-panel" id="timelinePanel" style="display: none;">
+                <div class="panel-header">
+                    <h3><i class="fas fa-timeline"></i> Timeline</h3>
+                    <span class="badge badge-primary" id="timelineCount">0 events</span>
+                </div>
+                <div class="panel-content">
+                    <div class="timeline" id="timelineContent"></div>
+                </div>
+            </div>
+
+            <!-- Viewpoints Panel -->
+            <div class="result-panel" id="viewpointsPanel" style="display: none;">
+                <div class="panel-header">
+                    <h3><i class="fas fa-users"></i> Scholarly Viewpoints</h3>
+                    <span class="badge badge-primary" id="viewpointsCount">0 viewpoints</span>
+                </div>
+                <div class="panel-content">
+                    <div class="viewpoints-list" id="viewpointsList"></div>
+                </div>
+            </div>
+
+            <!-- Causes Panel -->
+            <div class="result-panel" id="causesPanel" style="display: none;">
+                <div class="panel-header">
+                    <h3><i class="fas fa-arrow-right"></i> Causes Analysis</h3>
+                    <span class="badge badge-primary">Causal Factors</span>
+                </div>
+                <div class="panel-content">
+                    <div id="causesContent"></div>
+                </div>
+            </div>
+
+            <!-- Consequences Panel -->
+            <div class="result-panel" id="consequencesPanel" style="display: none;">
+                <div class="panel-header">
+                    <h3><i class="fas fa-arrow-left"></i> Consequences Analysis</h3>
+                    <span class="badge badge-primary">Impact Assessment</span>
+                </div>
+                <div class="panel-content">
+                    <div id="consequencesContent"></div>
+                </div>
+            </div>
+
+            <!-- Themes Panel -->
+            <div class="result-panel" id="themesPanel" style="display: none;">
+                <div class="panel-header">
+                    <h3><i class="fas fa-palette"></i> Themes & Patterns</h3>
+                    <span class="badge badge-primary">Thematic Analysis</span>
+                </div>
+                <div class="panel-content">
+                    <div id="themesContent"></div>
+                </div>
+            </div>
+
+            <!-- People Panel -->
+            <div class="result-panel" id="peoplePanel" style="display: none;">
+                <div class="panel-header">
+                    <h3><i class="fas fa-user-friends"></i> Key Figures</h3>
+                    <span class="badge badge-primary" id="peopleCount">0 people</span>
+                </div>
+                <div class="panel-content">
+                    <div id="peopleContent"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="analysis-actions">
+            <button class="btn btn-primary" onclick="exportAnalysis()">
+                <i class="fas fa-download"></i> Export Analysis
+            </button>
+            <button class="btn btn-secondary" onclick="goToQnA()">
+                <i class="fas fa-question-circle"></i> Ask Questions
+            </button>
+            <button class="btn btn-outline" onclick="compareWithAnother()">
+                <i class="fas fa-balance-scale"></i> Compare Documents
+            </button>
+        </div>
+    </div>
+
+    <div class="sample-analysis">
+        <h3>Try Sample Analysis</h3>
+        <p>Don't have a document? Try these sample analyses:</p>
+        <div class="sample-buttons">
+            <button class="btn btn-outline" onclick="loadSampleAnalysis('ww2')">
+                <i class="fas fa-play"></i> World War 2 Analysis
+            </button>
+            <button class="btn btn-outline" onclick="loadSampleAnalysis('french_revolution')">
+                <i class="fas fa-play"></i> French Revolution Analysis
+            </button>
+            <button class="btn btn-outline" onclick="loadSampleAnalysis('cold_war')">
+                <i class="fas fa-play"></i> Cold War Analysis
+            </button>
+        </div>
+    </div>
+</div>
+
+<script>
+let currentDocumentId = null;
+let currentAnalysisData = null;
+
+document.addEventListener('DOMContentLoaded', function() {
+    // Load processed documents
+    loadProcessedDocuments();
+    
+    // Check for document ID from upload
+    const savedDocId = localStorage.getItem('currentDocumentId');
+    if (savedDocId) {
+        currentDocumentId = savedDocId;
+        document.getElementById('documentSelect').value = savedDocId;
+        loadDocumentInfo(savedDocId);
+    }
+});
+
+function loadProcessedDocuments() {
+    // In a real app, this would fetch from an API endpoint
+    // For now, we'll check localStorage for uploaded documents
+    const savedDocs = JSON.parse(localStorage.getItem('processedDocuments') || '[]');
+    const select = document.getElementById('documentSelect');
+    
+    // Clear existing options except the first one
+    while (select.options.length > 1) {
+        select.remove(1);
+    }
+    
+    savedDocs.forEach(doc => {
+        const option = document.createElement('option');
+        option.value = doc.id;
+        option.textContent = doc.name;
+        select.appendChild(option);
+    });
+    
+    // If we have a saved document ID, select it
+    if (currentDocumentId) {
+        select.value = currentDocumentId;
+        loadDocumentInfo(currentDocumentId);
+    }
+}
+
+function loadDocumentInfo(docId) {
+    const savedDocs = JSON.parse(localStorage.getItem('processedDocuments') || '[]');
+    const doc = savedDocs.find(d => d.id === docId);
+    
+    if (doc) {
+        const infoDiv = document.getElementById('documentInfo');
+        document.getElementById('selectedDocName').textContent = doc.name;
+        document.getElementById('selectedDocSize').textContent = doc.size || 'Unknown';
+        document.getElementById('selectedDocDate').textContent = doc.date || 'Just now';
+        infoDiv.style.display = 'block';
+    }
+}
+
+function startAnalysis() {
+    const docSelect = document.getElementById('documentSelect');
+    const topic = document.getElementById('analysisTopic').value.trim();
+    
+    if (!docSelect.value) {
+        alert('Please select a document first.');
+        return;
+    }
+    
+    // Get selected options
+    const options = {
+        summary: document.getElementById('optionSummary').checked,
+        keyPoints: document.getElementById('optionKeyPoints').checked,
+        timeline: document.getElementById('optionTimeline').checked,
+        viewpoints: document.getElementById('optionViewpoints').checked,
+        causes: document.getElementById('optionCauses').checked,
+        consequences: document.getElementById('optionConsequences').checked,
+        themes: document.getElementById('optionThemes').checked,
+        people: document.getElementById('optionPeople').checked
+    };
+    
+    // Check if at least one option is selected
+    const hasOptions = Object.values(options).some(opt => opt);
+    if (!hasOptions) {
+        alert('Please select at least one analysis option.');
+        return;
+    }
+    
+    currentDocumentId = docSelect.value;
+    
+    // Show loading
+    document.getElementById('loadingSection').style.display = 'block';
+    document.getElementById('analyzeBtn').disabled = true;
+    
+    // Start progress animation
+    simulateProgress();
+    
+    // Make API call
+    fetch('/api/analyze', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            document_id: currentDocumentId,
+            topic: topic,
+            options: options
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            currentAnalysisData = data;
+            showAnalysisResults(data);
+        } else {
+            alert('Analysis failed: ' + data.error);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Analysis failed. Please try again.');
+    })
+    .finally(() => {
+        document.getElementById('loadingSection').style.display = 'none';
+        document.getElementById('analyzeBtn').disabled = false;
+    });
+}
+
+function simulateProgress() {
+    const stages = ['stage1', 'stage2', 'stage3', 'stage4'];
+    const loadingText = document.getElementById('loadingText');
+    const texts = [
+        'Reading and parsing document...',
+        'Processing text and extracting key information...',
+        'Generating insights and analyzing patterns...',
+        'Finalizing analysis and formatting results...'
+    ];
+    
+    stages.forEach((stageId, index) => {
+        const stage = document.getElementById(stageId);
+        setTimeout(() => {
+            // Remove active from all stages
+            stages.forEach(s => document.getElementById(s).classList.remove('active'));
+            // Add active to current stage
+            stage.classList.add('active');
+            // Update loading text
+            loadingText.textContent = texts[index];
+        }, index * 1000);
+    });
+}
+
+function showAnalysisResults(data) {
+    const resultsDiv = document.getElementById('analysisResults');
+    const subtitle = document.getElementById('resultsSubtitle');
+    
+    // Update subtitle
+    subtitle.textContent = data.topic ? `Analysis focused on: "${data.topic}"` : 'General document analysis';
+    
+    // Show/hide panels based on available data
+    if (data.summary) {
+        showSummary(data.summary);
+    }
+    
+    if (data.key_points && data.key_points.length > 0) {
+        showKeyPoints(data.key_points);
+    }
+    
+    if (data.timeline && data.timeline.length > 0) {
+        showTimeline(data.timeline);
+    }
+    
+    if (data.viewpoints && data.viewpoints.length > 0) {
+        showViewpoints(data.viewpoints);
+    }
+    
+    // Show additional analysis if available
+    if (data.causes) {
+        showCauses(data.causes);
+    }
+    
+    if (data.consequences) {
+        showConsequences(data.consequences);
+    }
+    
+    if (data.themes) {
+        showThemes(data.themes);
+    }
+    
+    if (data.people) {
+        showPeople(data.people);
+    }
+    
+    // Show results section
+    resultsDiv.style.display = 'block';
+    resultsDiv.scrollIntoView({ behavior: 'smooth' });
+}
+
+function showSummary(summary) {
+    const panel = document.getElementById('summaryPanel');
+    const content = document.getElementById('summaryContent');
+    const length = document.getElementById('summaryLength');
+    
+    content.textContent = summary;
+    length.textContent = `${summary.split(' ').length} words`;
+    panel.style.display = 'block';
+}
+
+function showKeyPoints(keyPoints) {
+    const panel = document.getElementById('keyPointsPanel');
+    const list = document.getElementById('keyPointsList');
+    const count = document.getElementById('keyPointsCount');
+    
+    list.innerHTML = '';
+    keyPoints.forEach(point => {
+        const li = document.createElement('li');
+        li.textContent = point;
+        list.appendChild(li);
+    });
+    
+    count.textContent = `${keyPoints.length} points`;
+    panel.style.display = 'block';
+}
+
+function showTimeline(timeline) {
+    const panel = document.getElementById('timelinePanel');
+    const content = document.getElementById('timelineContent');
+    const count = document.getElementById('timelineCount');
+    
+    content.innerHTML = '';
+    timeline.forEach(event => {
+        const item = document.createElement('div');
+        item.className = 'timeline-item';
+        
+        item.innerHTML = `
+            <div class="timeline-marker"></div>
+            <div class="timeline-date">${event.date || 'Unknown date'}</div>
+            <div class="timeline-event">${event.event || event.context || 'No description'}</div>
+        `;
+        
+        content.appendChild(item);
+    });
+    
+    count.textContent = `${timeline.length} events`;
+    panel.style.display = 'block';
+}
+
+function showViewpoints(viewpoints) {
+    const panel = document.getElementById('viewpointsPanel');
+    const list = document.getElementById('viewpointsList');
+    const count = document.getElementById('viewpointsCount');
+    
+    list.innerHTML = '';
+    viewpoints.forEach(viewpoint => {
+        const card = document.createElement('div');
+        card.className = 'viewpoint-card';
+        
+        card.innerHTML = `
+            <div class="viewpoint-header">
+                <div class="viewpoint-historian">${viewpoint.historian || 'Historical Perspective'}</div>
+                <div class="viewpoint-school">${viewpoint.school || 'Interpretation'}</div>
+            </div>
+            <div class="viewpoint-content">${viewpoint.viewpoint}</div>
+            ${viewpoint.evidence ? `
+                <div class="viewpoint-evidence">
+                    <strong>Evidence:</strong> ${viewpoint.evidence}
+                </div>
+            ` : ''}
+        `;
+        
+        list.appendChild(card);
+    });
+    
+    count.textContent = `${viewpoints.length} viewpoints`;
+    panel.style.display = 'block';
+}
+
+function showCauses(causes) {
+    const panel = document.getElementById('causesPanel');
+    const content = document.getElementById('causesContent');
+    
+    if (typeof causes === 'string') {
+        content.innerHTML = `<p>${causes}</p>`;
+    } else if (Array.isArray(causes)) {
+        let html = '<ul>';
+        causes.forEach(cause => {
+            html += `<li>${cause}</li>`;
+        });
+        html += '</ul>';
+        content.innerHTML = html;
+    } else {
+        content.innerHTML = '<p>No causes identified.</p>';
+    }
+    
+    panel.style.display = 'block';
+}
+
+function showConsequences(consequences) {
+    const panel = document.getElementById('consequencesPanel');
+    const content = document.getElementById('consequencesContent');
+    
+    if (typeof consequences === 'string') {
+        content.innerHTML = `<p>${consequences}</p>`;
+    } else if (Array.isArray(consequences)) {
+        let html = '<ul>';
+        consequences.forEach(consequence => {
+            html += `<li>${consequence}</li>`;
+        });
+        html += '</ul>';
+        content.innerHTML = html;
+    } else {
+        content.innerHTML = '<p>No consequences identified.</p>';
+    }
+    
+    panel.style.display = 'block';
+}
+
+function showThemes(themes) {
+    const panel = document.getElementById('themesPanel');
+    const content = document.getElementById('themesContent');
+    
+    if (typeof themes === 'string') {
+        content.innerHTML = `<p>${themes}</p>`;
+    } else if (Array.isArray(themes)) {
+        let html = '<div class="themes-grid">';
+        themes.forEach(theme => {
+            html += `
+                <div class="theme-item">
+                    <div class="theme-name">${theme.name || theme}</div>
+                    ${theme.description ? `<div class="theme-desc">${theme.description}</div>` : ''}
+                    ${theme.examples ? `<div class="theme-examples"><small>Examples: ${theme.examples}</small></div>` : ''}
+                </div>
+            `;
+        });
+        html += '</div>';
+        content.innerHTML = html;
+    } else {
+        content.innerHTML = '<p>No themes identified.</p>';
+    }
+    
+    panel.style.display = 'block';
+}
+
+function showPeople(people) {
+    const panel = document.getElementById('peoplePanel');
+    const content = document.getElementById('peopleContent');
+    const count = document.getElementById('peopleCount');
+    
+    if (Array.isArray(people)) {
+        let html = '<div class="people-grid">';
+        people.forEach(person => {
+            html += `
+                <div class="person-card">
+                    <div class="person-name">${person.name}</div>
+                    <div class="person-role">${person.role || 'Historical Figure'}</div>
+                    ${person.significance ? `<div class="person-significance">${person.significance}</div>` : ''}
+                    ${person.impact ? `<div class="person-impact"><small>Impact: ${person.impact}</small></div>` : ''}
+                </div>
+            `;
+        });
+        html += '</div>';
+        content.innerHTML = html;
+        count.textContent = `${people.length} people`;
+    } else {
+        content.innerHTML = '<p>No key figures identified.</p>';
+    }
+    
+    panel.style.display = 'block';
+}
+
+function exportAnalysis() {
+    if (!currentAnalysisData) {
+        alert('No analysis data to export.');
+        return;
+    }
+    
+    // Create export content
+    let exportContent = `HISTORICAL EVENT ANALYSIS REPORT\n`;
+    exportContent += `Generated on: ${new Date().toLocaleString()}\n`;
+    exportContent += `================================\n\n`;
+    
+    if (currentAnalysisData.topic) {
+        exportContent += `ANALYSIS FOCUS: ${currentAnalysisData.topic}\n\n`;
+    }
+    
+    if (currentAnalysisData.summary) {
+        exportContent += `SUMMARY:\n${currentAnalysisData.summary}\n\n`;
+    }
+    
+    if (currentAnalysisData.key_points && currentAnalysisData.key_points.length > 0) {
+        exportContent += `KEY POINTS:\n`;
+        currentAnalysisData.key_points.forEach((point, index) => {
+            exportContent += `${index + 1}. ${point}\n`;
+        });
+        exportContent += `\n`;
+    }
+    
+    if (currentAnalysisData.timeline && currentAnalysisData.timeline.length > 0) {
+        exportContent += `TIMELINE:\n`;
+        currentAnalysisData.timeline.forEach(event => {
+            exportContent += `${event.date || 'Unknown'}: ${event.event || event.context}\n`;
+        });
+        exportContent += `\n`;
+    }
+    
+    if (currentAnalysisData.viewpoints && currentAnalysisData.viewpoints.length > 0) {
+        exportContent += `SCHOLARLY VIEWPOINTS:\n`;
+        currentAnalysisData.viewpoints.forEach(viewpoint => {
+            exportContent += `- ${viewpoint.historian || 'Perspective'}: ${viewpoint.viewpoint}\n`;
+            if (viewpoint.evidence) {
+                exportContent += `  Evidence: ${viewpoint.evidence}\n`;
+            }
+        });
+    }
+    
+    // Create and download file
+    const blob = new Blob([exportContent], { type: 'text/plain' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `historical-analysis-${new Date().getTime()}.txt`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(url);
+    
+    alert('Analysis exported successfully!');
+}
+
+function goToQnA() {
+    if (currentDocumentId) {
+        localStorage.setItem('currentDocumentId', currentDocumentId);
+        window.location.href = '/qna';
+    } else {
+        alert('Please analyze a document first.');
+    }
+}
+
+function compareWithAnother() {
+    alert('Document comparison feature coming soon!');
+}
+
+function loadSampleAnalysis(sampleType) {
+    // Simulate sample analysis
+    document.getElementById('loadingSection').style.display = 'block';
+    document.getElementById('analyzeBtn').disabled = true;
+    
+    setTimeout(() => {
+        // Mock data for sample analysis
+        const sampleData = getSampleData(sampleType);
+        currentAnalysisData = sampleData;
+        showAnalysisResults(sampleData);
+        document.getElementById('loadingSection').style.display = 'none';
+        document.getElementById('analyzeBtn').disabled = false;
+    }, 2000);
+}
+
+function getSampleData(sampleType) {
+    const samples = {
+        ww2: {
+            topic: 'World War 2 Causes and Consequences',
+            summary: 'World War II was a global war that lasted from 1939 to 1945. It involved the vast majority of the world\'s countries—including all of the great powers—forming two opposing military alliances: the Allies and the Axis powers. The war was the deadliest conflict in human history, resulting in 70 to 85 million fatalities.',
+            key_points: [
+                'The Treaty of Versailles imposed harsh penalties on Germany after WWI',
+                'Rise of fascist regimes in Germany, Italy, and Japan',
+                'Failure of the League of Nations to prevent aggression',
+                'German invasion of Poland on September 1, 1939',
+                'Global conflict involving over 30 countries',
+                'Development and use of atomic weapons',
+                'Formation of the United Nations after the war'
+            ],
+            timeline: [
+                { date: '1919', event: 'Treaty of Versailles signed, imposing harsh terms on Germany' },
+                { date: '1933', event: 'Adolf Hitler becomes Chancellor of Germany' },
+                { date: '1939-09-01', event: 'Germany invades Poland, beginning World War II' },
+                { date: '1941-12-07', event: 'Japanese attack on Pearl Harbor brings US into the war' },
+                { date: '1944-06-06', event: 'D-Day: Allied invasion of Normandy' },
+                { date: '1945-05-08', event: 'VE Day: Germany surrenders' },
+                { date: '1945-08-06', event: 'Atomic bomb dropped on Hiroshima' },
+                { date: '1945-09-02', event: 'Japan surrenders, ending World War II' }
+            ],
+            viewpoints: [
+                {
+                    historian: 'Traditional View',
+                    viewpoint: 'Hitler\'s aggression and expansionist policies were primary causes',
+                    evidence: 'Mein Kampf, Nazi ideology documents, military plans',
+                    school: 'Traditionalist'
+                },
+                {
+                    historian: 'Revisionist View',
+                    viewpoint: 'Economic factors and Treaty of Versailles created conditions for war',
+                    evidence: 'Economic depression, reparations burden, Weimar Republic instability',
+                    school: 'Revisionist'
+                },
+                {
+                    historian: 'Structuralist View',
+                    viewpoint: 'International system failure and power vacuum allowed aggression',
+                    evidence: 'League of Nations weaknesses, appeasement policy, alliance systems',
+                    school: 'Structuralist'
+                }
+            ],
+            causes: [
+                'Treaty of Versailles and German resentment',
+                'Failure of appeasement policies',
+                'Rise of totalitarian regimes',
+                'Economic depression and instability',
+                'Failure of international diplomacy'
+            ],
+            consequences: [
+                'Death of 70-85 million people',
+                'Division of Europe and beginning of Cold War',
+                'Decolonization movements in Asia and Africa',
+                'Creation of United Nations',
+                'Beginning of nuclear age',
+                'Major shifts in global power balance'
+            ]
+        },
+        french_revolution: {
+            topic: 'French Revolution Analysis',
+            summary: 'The French Revolution was a period of radical political and societal change in France that began with the Estates General of 1789 and ended with the formation of the French Consulate in November 1799. The Revolution overthrew the monarchy, established a republic, catalyzed violent periods of political turmoil, and finally culminated in a dictatorship under Napoleon that brought many of its principles to areas of Western Europe and beyond.',
+            key_points: [
+                'Financial crisis and debt from wars including American Revolution',
+                'Social inequality among the three estates',
+                'Storming of the Bastille on July 14, 1789',
+                'Declaration of the Rights of Man and of the Citizen',
+                'Reign of Terror (1793-1794)',
+                'Rise of Napoleon Bonaparte',
+                'Spread of revolutionary ideas across Europe'
+            ],
+            timeline: [
+                { date: '1789-05-05', event: 'Estates General convenes' },
+                { date: '1789-07-14', event: 'Storming of the Bastille' },
+                { date: '1789-08-26', event: 'Declaration of Rights of Man' },
+                { date: '1792-09-21', event: 'First French Republic declared' },
+                { date: '1793-01-21', event: 'Execution of Louis XVI' },
+                { date: '1793-1794', event: 'Reign of Terror' },
+                { date: '1799-11-09', event: 'Napoleon\'s coup d\'état' }
+            ],
+            viewpoints: [
+                {
+                    historian: 'Marxist Interpretation',
+                    viewpoint: 'Class struggle between aristocracy and bourgeoisie',
+                    evidence: 'Economic data, class conflicts, property redistribution',
+                    school: 'Marxist'
+                },
+                {
+                    historian: 'Liberal Interpretation',
+                    viewpoint: 'Triumph of Enlightenment ideas and individual rights',
+                    evidence: 'Philosophical texts, declarations, constitutional documents',
+                    school: 'Liberal'
+                },
+                {
+                    historian: 'Cultural Interpretation',
+                    viewpoint: 'Revolution in mentalities and public sphere',
+                    evidence: 'Newspapers, pamphlets, symbols, festivals',
+                    school: 'Cultural'
+                }
+            ]
+        }
+    };
+    
+    return samples[sampleType] || samples.ww2;
+}
+
+// Add event listener for document selection
+document.getElementById('documentSelect').addEventListener('change', function() {
+    if (this.value) {
+        currentDocumentId = this.value;
+        localStorage.setItem('currentDocumentId', this.value);
+        loadDocumentInfo(this.value);
+    }
+});
+</script>
+
+<style>
+/* Additional styles for analyze page */
+.document-selector {
+    margin-bottom: 20px;
+}
+
+.document-info {
+    background: #f8f9fa;
+    padding: 15px;
+    border-radius: 8px;
+    margin-top: 10px;
+    border-left: 4px solid #3498db;
+}
+
+.document-info p {
+    margin: 5px 0;
+    font-size: 0.95rem;
+}
+
+.help-text {
+    color: #7f8c8d;
+    font-size: 0.9rem;
+    margin-top: 5px;
+}
+
+.progress-stages {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 30px;
+    max-width: 600px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.stage {
+    flex: 1;
+    text-align: center;
+    padding: 10px;
+    background: #ecf0f1;
+    border-radius: 6px;
+    margin: 0 5px;
+    font-size: 0.9rem;
+    color: #7f8c8d;
+    transition: all 0.3s ease;
+}
+
+.stage.active {
+    background: #3498db;
+    color: white;
+    transform: translateY(-2px);
+    box-shadow: 0 2px 8px rgba(52, 152, 219, 0.3);
+}
+
+.results-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+    gap: 25px;
+    margin-top: 30px;
+}
+
+.results-subtitle {
+    text-align: center;
+    color: #7f8c8d;
+    margin-bottom: 30px;
+    font-size: 1.1rem;
+}
+
+.themes-grid, .people-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 15px;
+}
+
+.theme-item, .person-card {
+    background: #f8f9fa;
+    padding: 15px;
+    border-radius: 8px;
+    border-left: 4px solid #2ecc71;
+}
+
+.person-card {
+    border-left-color: #9b59b6;
+}
+
+.theme-name, .person-name {
+    font-weight: 600;
+    color: #2c3e50;
+    margin-bottom: 5px;
+}
+
+.theme-desc, .person-role, .person-significance {
+    font-size: 0.9rem;
+    color: #555;
+    margin-bottom: 5px;
+}
+
+.theme-examples, .person-impact {
+    font-size: 0.85rem;
+    color: #7f8c8d;
+}
+
+.analysis-actions {
+    display: flex;
+    gap: 15px;
+    justify-content: center;
+    margin-top: 40px;
+    padding-top: 30px;
+    border-top: 1px solid #eee;
+}
+
+.sample-analysis {
+    margin-top: 50px;
+    padding: 30px;
+    background: white;
+    border-radius: 10px;
+    box-shadow: 0 3px 15px rgba(0,0,0,0.1);
+    text-align: center;
+}
+
+.sample-analysis h3 {
+    color: #2c3e50;
+    margin-bottom: 10px;
+}
+
+.sample-buttons {
+    display: flex;
+    gap: 15px;
+    justify-content: center;
+    margin-top: 20px;
+    flex-wrap: wrap;
+}
+
+@media (max-width: 768px) {
+    .progress-stages {
+        flex-direction: column;
+        gap: 10px;
+    }
+    
+    .stage {
+        margin: 5px 0;
+    }
+    
+    .analysis-actions {
+        flex-direction: column;
+    }
+    
+    .results-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .sample-buttons {
+        flex-direction: column;
+    }
+}
+</style>
+{% endblock %}

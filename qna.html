@@ -1,0 +1,1037 @@
+{% extends "layout.html" %}
+
+{% block title %}Research Q&A{% endblock %}
+
+{% block content %}
+<div class="qna-container">
+    <div class="qna-header">
+        <h1><i class="fas fa-question-circle"></i> Deep Research Q&A</h1>
+        <p class="subtitle">Ask complex historical questions and get AI-powered answers with source references</p>
+    </div>
+
+    <div class="qna-interface">
+        <div class="qna-controls">
+            <div class="control-card">
+                <div class="control-icon">
+                    <i class="fas fa-file-alt"></i>
+                </div>
+                <h3>Select Source</h3>
+                <div class="source-selection">
+                    <select id="sourceSelect" class="form-control">
+                        <option value="">Select a document to query...</option>
+                        <!-- Documents will be loaded dynamically -->
+                    </select>
+                    <div class="source-info" id="sourceInfo" style="display: none;">
+                        <p><strong>Document:</strong> <span id="selectedSourceName"></span></p>
+                        <p><strong>Status:</strong> <span class="badge badge-success" id="sourceStatus">Ready</span></p>
+                    </div>
+                </div>
+                <div class="quick-docs">
+                    <h4>Quick Documents</h4>
+                    <div class="quick-doc-buttons">
+                        <button class="btn btn-sm btn-outline" onclick="selectDocument('current')">
+                            <i class="fas fa-file"></i> Current Analysis
+                        </button>
+                        <button class="btn btn-sm btn-outline" onclick="selectDocument('recent')">
+                            <i class="fas fa-history"></i> Recent Upload
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="control-card">
+                <div class="control-icon">
+                    <i class="fas fa-cog"></i>
+                </div>
+                <h3>Query Settings</h3>
+                <div class="query-settings">
+                    <div class="setting-group">
+                        <label for="detailLevel">Detail Level</label>
+                        <select id="detailLevel" class="form-control">
+                            <option value="concise">Concise</option>
+                            <option value="balanced" selected>Balanced</option>
+                            <option value="detailed">Detailed</option>
+                            <option value="scholarly">Scholarly</option>
+                        </select>
+                    </div>
+                    
+                    <div class="setting-group">
+                        <label for="perspective">Perspective</label>
+                        <select id="perspective" class="form-control">
+                            <option value="neutral">Neutral/Factual</option>
+                            <option value="critical">Critical Analysis</option>
+                            <option value="comparative">Comparative</option>
+                            <option value="historiographical">Historiographical</option>
+                        </select>
+                    </div>
+                    
+                    <div class="setting-group">
+                        <label>
+                            <input type="checkbox" id="includeSources" checked>
+                            Include Source References
+                        </label>
+                    </div>
+                    
+                    <div class="setting-group">
+                        <label>
+                            <input type="checkbox" id="includeCitations">
+                            Include Formal Citations
+                        </label>
+                    </div>
+                </div>
+            </div>
+
+            <div class="control-card">
+                <div class="control-icon">
+                    <i class="fas fa-lightbulb"></i>
+                </div>
+                <h3>Sample Questions</h3>
+                <div class="sample-questions">
+                    <button class="sample-question" onclick="loadSampleQuestion('causes')">
+                        <i class="fas fa-arrow-right"></i> What were the main causes?
+                    </button>
+                    <button class="sample-question" onclick="loadSampleQuestion('consequences')">
+                        <i class="fas fa-arrow-left"></i> What were the consequences?
+                    </button>
+                    <button class="sample-question" onclick="loadSampleQuestion('compare')">
+                        <i class="fas fa-balance-scale"></i> Compare different interpretations
+                    </button>
+                    <button class="sample-question" onclick="loadSampleQuestion('significance')">
+                        <i class="fas fa-star"></i> What was the historical significance?
+                    </button>
+                    <button class="sample-question" onclick="loadSampleQuestion('debates')">
+                        <i class="fas fa-comments"></i> Key historiographical debates
+                    </button>
+                    <button class="sample-question" onclick="loadSampleQuestion('sources')">
+                        <i class="fas fa-book"></i> Primary source reliability
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div class="qna-input-section">
+            <div class="qna-input-group">
+                <label for="questionInput">
+                    <i class="fas fa-question"></i> Your Research Question
+                </label>
+                <textarea id="questionInput" class="qna-textarea" 
+                          placeholder="Ask a detailed historical research question... 
+Example: 'Analyze the economic factors that contributed to the French Revolution and compare them with the American Revolution.'"
+                          rows="4"></textarea>
+                <div class="input-actions">
+                    <div class="char-count">
+                        <span id="charCount">0</span> characters
+                    </div>
+                    <button class="btn btn-sm btn-outline" onclick="clearQuestion()">
+                        <i class="fas fa-times"></i> Clear
+                    </button>
+                </div>
+            </div>
+
+            <div class="qna-actions">
+                <button class="btn btn-primary qna-btn" id="askBtn" onclick="askQuestion()">
+                    <i class="fas fa-paper-plane"></i> Ask Question
+                </button>
+                <button class="btn btn-secondary" onclick="askFollowup()" id="followupBtn" disabled>
+                    <i class="fas fa-reply"></i> Ask Follow-up
+                </button>
+                <button class="btn btn-outline" onclick="startNewSession()">
+                    <i class="fas fa-plus"></i> New Session
+                </button>
+            </div>
+        </div>
+
+        <div class="loading" id="loadingSection" style="display: none;">
+            <div class="loading-spinner"></div>
+            <p class="loading-text" id="loadingText">Analyzing your question...</p>
+            <div class="thinking-steps">
+                <div class="step active">Understanding question</div>
+                <div class="step">Searching documents</div>
+                <div class="step">Analyzing context</div>
+                <div class="step">Formulating answer</div>
+            </div>
+        </div>
+
+        <div class="qna-results">
+            <div class="results-header">
+                <h3><i class="fas fa-history"></i> Conversation History</h3>
+                <div class="header-actions">
+                    <button class="btn btn-sm btn-outline" onclick="exportConversation()">
+                        <i class="fas fa-download"></i> Export
+                    </button>
+                    <button class="btn btn-sm btn-outline" onclick="clearConversation()">
+                        <i class="fas fa-trash"></i> Clear
+                    </button>
+                </div>
+            </div>
+            
+            <div class="qna-history" id="conversationHistory">
+                <div class="welcome-message">
+                    <div class="message ai-message">
+                        <div class="message-header">
+                            <span><i class="fas fa-robot"></i> Historical Research Assistant</span>
+                            <span>Just now</span>
+                        </div>
+                        <div class="message-content">
+                            <p>Welcome to the Historical Research Q&A!</p>
+                            <p>I can help you analyze historical documents and answer complex research questions.</p>
+                            <p><strong>To get started:</strong></p>
+                            <ol>
+                                <li>Select a document from the dropdown or use a recent upload</li>
+                                <li>Type your question or use a sample question</li>
+                                <li>Adjust settings for detail level and perspective</li>
+                                <li>Click "Ask Question" to get a detailed, source-referenced answer</li>
+                            </ol>
+                            <p>Try asking about causes, consequences, interpretations, or historical significance!</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="conversation-info">
+                <p><i class="fas fa-info-circle"></i> <strong id="conversationCount">0</strong> questions answered in this session</p>
+            </div>
+        </div>
+
+        <div class="advanced-features">
+            <h3><i class="fas fa-magic"></i> Advanced Features</h3>
+            <div class="feature-buttons">
+                <button class="btn btn-outline" onclick="analyzeQuestion()">
+                    <i class="fas fa-search"></i> Analyze Question Type
+                </button>
+                <button class="btn btn-outline" onclick="suggestQuestions()">
+                    <i class="fas fa-lightbulb"></i> Suggest Related Questions
+                </button>
+                <button class="btn btn-outline" onclick="checkBias()">
+                    <i class="fas fa-balance-scale"></i> Check for Bias
+                </button>
+                <button class="btn btn-outline" onclick="compareAnswers()">
+                    <i class="fas fa-columns"></i> Compare Answers
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+let currentSession = [];
+let currentDocumentId = null;
+let lastQuestion = null;
+
+document.addEventListener('DOMContentLoaded', function() {
+    // Load available documents
+    loadAvailableDocuments();
+    
+    // Load saved document
+    const savedDocId = localStorage.getItem('currentDocumentId');
+    if (savedDocId) {
+        currentDocumentId = savedDocId;
+        document.getElementById('sourceSelect').value = savedDocId;
+        updateSourceInfo(savedDocId);
+    }
+    
+    // Load saved conversation if exists
+    loadSavedConversation();
+    
+    // Setup character counter
+    document.getElementById('questionInput').addEventListener('input', updateCharCount);
+    updateCharCount();
+});
+
+function loadAvailableDocuments() {
+    const savedDocs = JSON.parse(localStorage.getItem('processedDocuments') || '[]');
+    const select = document.getElementById('sourceSelect');
+    
+    // Clear existing options except the first one
+    while (select.options.length > 1) {
+        select.remove(1);
+    }
+    
+    savedDocs.forEach(doc => {
+        const option = document.createElement('option');
+        option.value = doc.id;
+        option.textContent = doc.name;
+        select.appendChild(option);
+    });
+    
+    // Add sample documents
+    addSampleDocuments();
+    
+    if (currentDocumentId) {
+        select.value = currentDocumentId;
+        updateSourceInfo(currentDocumentId);
+    }
+}
+
+function addSampleDocuments() {
+    const select = document.getElementById('sourceSelect');
+    const samples = [
+        { id: 'sample_ww2', name: '[Sample] World War 2 Overview' },
+        { id: 'sample_french_rev', name: '[Sample] French Revolution Analysis' },
+        { id: 'sample_cold_war', name: '[Sample] Cold War Origins' }
+    ];
+    
+    samples.forEach(sample => {
+        const option = document.createElement('option');
+        option.value = sample.id;
+        option.textContent = sample.name;
+        select.appendChild(option);
+    });
+}
+
+function updateSourceInfo(docId) {
+    const savedDocs = JSON.parse(localStorage.getItem('processedDocuments') || '[]');
+    const doc = savedDocs.find(d => d.id === docId);
+    
+    const infoDiv = document.getElementById('sourceInfo');
+    if (doc) {
+        document.getElementById('selectedSourceName').textContent = doc.name;
+        infoDiv.style.display = 'block';
+    } else if (docId.startsWith('sample_')) {
+        document.getElementById('selectedSourceName').textContent = 'Sample Document';
+        infoDiv.style.display = 'block';
+    } else {
+        infoDiv.style.display = 'none';
+    }
+}
+
+function selectDocument(type) {
+    if (type === 'current') {
+        const savedDocId = localStorage.getItem('currentDocumentId');
+        if (savedDocId) {
+            document.getElementById('sourceSelect').value = savedDocId;
+            currentDocumentId = savedDocId;
+            updateSourceInfo(savedDocId);
+            showNotification('Selected current analysis document', 'success');
+        } else {
+            showNotification('No current analysis found', 'error');
+        }
+    } else if (type === 'recent') {
+        const savedDocs = JSON.parse(localStorage.getItem('processedDocuments') || '[]');
+        if (savedDocs.length > 0) {
+            const recentDoc = savedDocs[0];
+            document.getElementById('sourceSelect').value = recentDoc.id;
+            currentDocumentId = recentDoc.id;
+            updateSourceInfo(recentDoc.id);
+            showNotification('Selected most recent document', 'success');
+        } else {
+            showNotification('No documents found', 'error');
+        }
+    }
+}
+
+function updateCharCount() {
+    const textarea = document.getElementById('questionInput');
+    const charCount = document.getElementById('charCount');
+    charCount.textContent = textarea.value.length;
+    
+    // Color code based on length
+    if (textarea.value.length < 10) {
+        charCount.style.color = '#e74c3c';
+    } else if (textarea.value.length < 50) {
+        charCount.style.color = '#f39c12';
+    } else {
+        charCount.style.color = '#27ae60';
+    }
+}
+
+function clearQuestion() {
+    document.getElementById('questionInput').value = '';
+    updateCharCount();
+}
+
+function loadSampleQuestion(type) {
+    const questions = {
+        causes: "What were the primary causes of this historical event, and how did different factors interact with each other?",
+        consequences: "What were the short-term and long-term consequences of this event, and how did they shape subsequent historical developments?",
+        compare: "Compare and contrast different historical interpretations of this event. What evidence supports each interpretation?",
+        significance: "What is the historical significance of this event? How did it change the course of history?",
+        debates: "What are the main historiographical debates surrounding this event among scholars today?",
+        sources: "What types of primary sources exist for studying this event, and what are their strengths and limitations?"
+    };
+    
+    document.getElementById('questionInput').value = questions[type] || questions.causes;
+    updateCharCount();
+}
+
+function askQuestion() {
+    const question = document.getElementById('questionInput').value.trim();
+    const docSelect = document.getElementById('sourceSelect');
+    
+    if (!question) {
+        alert('Please enter a question.');
+        return;
+    }
+    
+    if (!docSelect.value) {
+        alert('Please select a document source.');
+        return;
+    }
+    
+    if (question.length < 10) {
+        alert('Please ask a more detailed question (at least 10 characters).');
+        return;
+    }
+    
+    currentDocumentId = docSelect.value;
+    lastQuestion = question;
+    
+    // Show loading
+    document.getElementById('loadingSection').style.display = 'block';
+    document.getElementById('askBtn').disabled = true;
+    document.getElementById('followupBtn').disabled = true;
+    
+    // Start thinking animation
+    simulateThinking();
+    
+    // Get query settings
+    const settings = {
+        detailLevel: document.getElementById('detailLevel').value,
+        perspective: document.getElementById('perspective').value,
+        includeSources: document.getElementById('includeSources').checked,
+        includeCitations: document.getElementById('includeCitations').checked
+    };
+    
+    // Add user question to conversation
+    addUserMessage(question);
+    
+    // Make API call
+    fetch('/api/ask', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            question: question,
+            document_id: currentDocumentId,
+            settings: settings
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            addAiMessage(data.answer, data.sources, settings);
+            enableFollowup();
+        } else {
+            addErrorMessage(data.error || 'Failed to get answer.');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        addErrorMessage('Network error. Please try again.');
+    })
+    .finally(() => {
+        document.getElementById('loadingSection').style.display = 'none';
+        document.getElementById('askBtn').disabled = false;
+        updateConversationCount();
+        saveConversation();
+    });
+}
+
+function simulateThinking() {
+    const steps = document.querySelectorAll('.thinking-steps .step');
+    const texts = [
+        'Understanding your question...',
+        'Searching through documents...',
+        'Analyzing historical context...',
+        'Formulating comprehensive answer...'
+    ];
+    
+    steps.forEach((step, index) => {
+        setTimeout(() => {
+            // Remove active from all steps
+            steps.forEach(s => s.classList.remove('active'));
+            // Add active to current step
+            step.classList.add('active');
+            // Update loading text
+            document.getElementById('loadingText').textContent = texts[index];
+        }, index * 1000);
+    });
+}
+
+function addUserMessage(question) {
+    const history = document.getElementById('conversationHistory');
+    const messageDiv = document.createElement('div');
+    messageDiv.className = 'message user-message';
+    
+    messageDiv.innerHTML = `
+        <div class="message-header">
+            <span><i class="fas fa-user"></i> You</span>
+            <span>${new Date().toLocaleTimeString()}</span>
+        </div>
+        <div class="message-content">
+            ${question}
+        </div>
+    `;
+    
+    history.appendChild(messageDiv);
+    
+    // Add to session
+    currentSession.push({
+        type: 'user',
+        content: question,
+        timestamp: new Date().toISOString()
+    });
+    
+    // Scroll to bottom
+    history.scrollTop = history.scrollHeight;
+}
+
+function addAiMessage(answer, sources, settings) {
+    const history = document.getElementById('conversationHistory');
+    const messageDiv = document.createElement('div');
+    messageDiv.className = 'message ai-message';
+    
+    let sourcesHtml = '';
+    if (settings.includeSources && sources && sources.length > 0) {
+        sourcesHtml = `
+            <div class="sources-section">
+                <h5><i class="fas fa-book"></i> Source References</h5>
+                <ul class="sources-list">
+                    ${sources.map(source => `<li>${source}</li>`).join('')}
+                </ul>
+            </div>
+        `;
+    }
+    
+    messageDiv.innerHTML = `
+        <div class="message-header">
+            <span><i class="fas fa-robot"></i> Historical Assistant</span>
+            <span>${new Date().toLocaleTimeString()}</span>
+        </div>
+        <div class="message-content">
+            ${answer}
+            ${sourcesHtml}
+            ${settings.includeCitations ? `
+                <div class="citation-section">
+                    <h5><i class="fas fa-quote-right"></i> Citation Style</h5>
+                    <p><small>APA: Author, A. (Year). Title. Source.</small></p>
+                </div>
+            ` : ''}
+        </div>
+    `;
+    
+    history.appendChild(messageDiv);
+    
+    // Add to session
+    currentSession.push({
+        type: 'ai',
+        content: answer,
+        sources: sources,
+        timestamp: new Date().toISOString()
+    });
+    
+    // Scroll to bottom
+    history.scrollTop = history.scrollHeight;
+}
+
+function addErrorMessage(error) {
+    const history = document.getElementById('conversationHistory');
+    const messageDiv = document.createElement('div');
+    messageDiv.className = 'message error-message';
+    
+    messageDiv.innerHTML = `
+        <div class="message-header">
+            <span><i class="fas fa-exclamation-triangle"></i> System Error</span>
+            <span>${new Date().toLocaleTimeString()}</span>
+        </div>
+        <div class="message-content">
+            <p><strong>Error:</strong> ${error}</p>
+            <p>Please try again or check your document selection.</p>
+        </div>
+    `;
+    
+    history.appendChild(messageDiv);
+    
+    // Scroll to bottom
+    history.scrollTop = history.scrollHeight;
+}
+
+function enableFollowup() {
+    document.getElementById('followupBtn').disabled = false;
+}
+
+function askFollowup() {
+    if (!lastQuestion) {
+        alert('Please ask a question first.');
+        return;
+    }
+    
+    const followup = prompt('Ask a follow-up question:', '');
+    if (followup && followup.trim()) {
+        document.getElementById('questionInput').value = followup;
+        updateCharCount();
+        askQuestion();
+    }
+}
+
+function startNewSession() {
+    if (confirm('Start a new conversation? The current conversation will be saved.')) {
+        saveConversation();
+        currentSession = [];
+        document.getElementById('conversationHistory').innerHTML = `
+            <div class="welcome-message">
+                <div class="message ai-message">
+                    <div class="message-header">
+                        <span><i class="fas fa-robot"></i> Historical Research Assistant</span>
+                        <span>Just now</span>
+                    </div>
+                    <div class="message-content">
+                        <p>New conversation started. Ask a historical research question!</p>
+                    </div>
+                </div>
+            </div>
+        `;
+        updateConversationCount();
+    }
+}
+
+function updateConversationCount() {
+    const userMessages = currentSession.filter(msg => msg.type === 'user').length;
+    document.getElementById('conversationCount').textContent = userMessages;
+}
+
+function saveConversation() {
+    if (currentSession.length > 0) {
+        const sessionData = {
+            timestamp: new Date().toISOString(),
+            documentId: currentDocumentId,
+            messages: currentSession
+        };
+        
+        // Save to localStorage
+        const savedSessions = JSON.parse(localStorage.getItem('conversationSessions') || '[]');
+        savedSessions.push(sessionData);
+        
+        // Keep only last 10 sessions
+        if (savedSessions.length > 10) {
+            savedSessions.shift();
+        }
+        
+        localStorage.setItem('conversationSessions', JSON.stringify(savedSessions));
+    }
+}
+
+function loadSavedConversation() {
+    // For now, we're not auto-loading old conversations
+    // But we could implement a conversation history viewer
+}
+
+function exportConversation() {
+    if (currentSession.length === 0) {
+        alert('No conversation to export.');
+        return;
+    }
+    
+    let exportContent = `HISTORICAL RESEARCH Q&A SESSION\n`;
+    exportContent += `Generated on: ${new Date().toLocaleString()}\n`;
+    exportContent += `Document: ${document.getElementById('selectedSourceName').textContent || 'Unknown'}\n`;
+    exportContent += `================================\n\n`;
+    
+    currentSession.forEach((msg, index) => {
+        exportContent += `${msg.type === 'user' ? 'USER' : 'ASSISTANT'} (${new Date(msg.timestamp).toLocaleTimeString()}):\n`;
+        exportContent += `${msg.content}\n\n`;
+        
+        if (msg.type === 'ai' && msg.sources && msg.sources.length > 0) {
+            exportContent += `Sources:\n`;
+            msg.sources.forEach((source, i) => {
+                exportContent += `${i + 1}. ${source}\n`;
+            });
+            exportContent += `\n`;
+        }
+        
+        exportContent += `---\n\n`;
+    });
+    
+    // Create and download file
+    const blob = new Blob([exportContent], { type: 'text/plain' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `historical-qa-${new Date().getTime()}.txt`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(url);
+    
+    showNotification('Conversation exported successfully!', 'success');
+}
+
+function clearConversation() {
+    if (confirm('Clear the entire conversation history?')) {
+        currentSession = [];
+        document.getElementById('conversationHistory').innerHTML = `
+            <div class="welcome-message">
+                <div class="message ai-message">
+                    <div class="message-header">
+                        <span><i class="fas fa-robot"></i> Historical Research Assistant</span>
+                        <span>Just now</span>
+                    </div>
+                    <div class="message-content">
+                        <p>Conversation cleared. Ask a new research question!</p>
+                    </div>
+                </div>
+            </div>
+        `;
+        updateConversationCount();
+        showNotification('Conversation cleared', 'info');
+    }
+}
+
+function analyzeQuestion() {
+    const question = document.getElementById('questionInput').value.trim();
+    if (!question) {
+        alert('Please enter a question first.');
+        return;
+    }
+    
+    // Simple question type analysis
+    const questionLower = question.toLowerCase();
+    let analysis = "Question Analysis:\n\n";
+    
+    if (questionLower.includes('cause') || questionLower.includes('why')) {
+        analysis += "• This appears to be a causal analysis question\n";
+        analysis += "• Focuses on understanding reasons and factors\n";
+        analysis += "• May require multi-causal explanation\n";
+    }
+    
+    if (questionLower.includes('compare') || questionLower.includes('contrast')) {
+        analysis += "• This is a comparative question\n";
+        analysis += "• Requires analysis of similarities and differences\n";
+        analysis += "• May involve multiple perspectives or cases\n";
+    }
+    
+    if (questionLower.includes('significance') || questionLower.includes('importance')) {
+        analysis += "• This assesses historical significance\n";
+        analysis += "• Requires evaluation of impact and consequences\n";
+        analysis += "• May consider short-term vs long-term effects\n";
+    }
+    
+    if (questionLower.includes('interpret') || questionLower.includes('view')) {
+        analysis += "• This examines historical interpretations\n";
+        analysis += "• Requires understanding of historiography\n";
+        analysis += "• May compare different scholarly perspectives\n";
+    }
+    
+    alert(analysis);
+}
+
+function suggestQuestions() {
+    const questions = [
+        "What were the economic factors involved?",
+        "How did social structures influence this event?",
+        "What role did key individuals play?",
+        "How does this event compare to similar events in other regions?",
+        "What primary sources exist for studying this?",
+        "How has historical interpretation changed over time?",
+        "What were the immediate vs long-term consequences?",
+        "How did this event influence later developments?",
+        "What alternative outcomes were possible?",
+        "How reliable are the sources for this event?"
+    ];
+    
+    let suggestions = "Suggested Follow-up Questions:\n\n";
+    questions.forEach((q, i) => {
+        suggestions += `${i + 1}. ${q}\n`;
+    });
+    
+    alert(suggestions);
+}
+
+function checkBias() {
+    alert("Bias Analysis:\n\nThis feature would analyze potential biases in:\n1. Source selection and interpretation\n2. Historical perspectives presented\n3. Language and framing of questions\n4. Omissions or emphasis in analysis\n\nComing soon in a future update!");
+}
+
+function compareAnswers() {
+    alert("Answer Comparison:\n\nThis feature would allow you to:\n1. Compare answers from different documents\n2. Analyze conflicting interpretations\n3. Identify consensus vs debate points\n4. Track how answers evolve with new questions\n\nComing soon in a future update!");
+}
+
+// Add event listener for source selection
+document.getElementById('sourceSelect').addEventListener('change', function() {
+    if (this.value) {
+        currentDocumentId = this.value;
+        updateSourceInfo(this.value);
+    }
+});
+</script>
+
+<style>
+/* Additional styles for Q&A page */
+.qna-controls {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 20px;
+    margin-bottom: 30px;
+}
+
+.control-card {
+    background: white;
+    padding: 25px;
+    border-radius: 10px;
+    box-shadow: 0 3px 15px rgba(0,0,0,0.1);
+}
+
+.control-icon {
+    font-size: 2rem;
+    color: #3498db;
+    margin-bottom: 15px;
+    text-align: center;
+}
+
+.control-card h3 {
+    color: #2c3e50;
+    margin-bottom: 20px;
+    text-align: center;
+    font-size: 1.3rem;
+}
+
+.source-selection {
+    margin-bottom: 20px;
+}
+
+.source-info {
+    background: #f8f9fa;
+    padding: 12px;
+    border-radius: 6px;
+    margin-top: 10px;
+    font-size: 0.9rem;
+}
+
+.source-info p {
+    margin: 5px 0;
+}
+
+.quick-docs h4 {
+    color: #7f8c8d;
+    font-size: 0.95rem;
+    margin-bottom: 10px;
+}
+
+.quick-doc-buttons {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.btn-sm {
+    padding: 6px 12px;
+    font-size: 0.85rem;
+}
+
+.query-settings {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.setting-group {
+    margin-bottom: 10px;
+}
+
+.setting-group label {
+    display: block;
+    margin-bottom: 8px;
+    color: #2c3e50;
+    font-weight: 500;
+    font-size: 0.9rem;
+}
+
+.setting-group input[type="checkbox"] {
+    margin-right: 8px;
+}
+
+.sample-questions {
+    display: grid;
+    gap: 10px;
+}
+
+.sample-question {
+    background: #f8f9fa;
+    border: 1px solid #e9ecef;
+    border-radius: 6px;
+    padding: 12px;
+    text-align: left;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    color: #2c3e50;
+}
+
+.sample-question:hover {
+    background: #3498db;
+    color: white;
+    border-color: #3498db;
+    transform: translateX(5px);
+}
+
+.sample-question i {
+    margin-right: 8px;
+    width: 16px;
+}
+
+.input-actions {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 10px;
+}
+
+.char-count {
+    font-size: 0.85rem;
+    color: #7f8c8d;
+}
+
+.thinking-steps {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 30px;
+    max-width: 500px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.thinking-steps .step {
+    flex: 1;
+    text-align: center;
+    padding: 8px;
+    background: #ecf0f1;
+    border-radius: 4px;
+    margin: 0 3px;
+    font-size: 0.8rem;
+    color: #7f8c8d;
+    transition: all 0.3s ease;
+}
+
+.thinking-steps .step.active {
+    background: #3498db;
+    color: white;
+}
+
+.results-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    padding-bottom: 15px;
+    border-bottom: 2px solid #eee;
+}
+
+.results-header h3 {
+    color: #2c3e50;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.header-actions {
+    display: flex;
+    gap: 10px;
+}
+
+.conversation-info {
+    background: #f8f9fa;
+    padding: 15px;
+    border-radius: 8px;
+    margin-top: 20px;
+    text-align: center;
+    font-size: 0.9rem;
+    color: #666;
+}
+
+.conversation-info i {
+    color: #3498db;
+    margin-right: 8px;
+}
+
+.advanced-features {
+    margin-top: 40px;
+    padding: 25px;
+    background: white;
+    border-radius: 10px;
+    box-shadow: 0 3px 15px rgba(0,0,0,0.1);
+}
+
+.advanced-features h3 {
+    color: #2c3e50;
+    margin-bottom: 20px;
+    text-align: center;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+}
+
+.feature-buttons {
+    display: flex;
+    gap: 15px;
+    justify-content: center;
+    flex-wrap: wrap;
+}
+
+.welcome-message {
+    margin-bottom: 20px;
+}
+
+.welcome-message .message-content {
+    line-height: 1.6;
+}
+
+.welcome-message ol {
+    padding-left: 20px;
+    margin: 15px 0;
+}
+
+.welcome-message li {
+    margin-bottom: 8px;
+}
+
+.error-message {
+    background: #ffeaea;
+    border-left: 4px solid #e74c3c;
+}
+
+.error-message .message-header {
+    color: #c0392b;
+}
+
+.citation-section {
+    margin-top: 15px;
+    padding-top: 15px;
+    border-top: 1px dashed #ddd;
+    font-size: 0.85rem;
+    color: #666;
+}
+
+.citation-section h5 {
+    color: #2c3e50;
+    margin-bottom: 5px;
+    font-size: 0.9rem;
+}
+
+@media (max-width: 768px) {
+    .qna-controls {
+        grid-template-columns: 1fr;
+    }
+    
+    .thinking-steps {
+        flex-direction: column;
+        gap: 10px;
+    }
+    
+    .feature-buttons {
+        flex-direction: column;
+    }
+    
+    .results-header {
+        flex-direction: column;
+        gap: 15px;
+        align-items: flex-start;
+    }
+    
+    .header-actions {
+        align-self: flex-end;
+    }
+}
+</style>
+{% endblock %}

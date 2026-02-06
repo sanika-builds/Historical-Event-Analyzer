@@ -1,0 +1,146 @@
+{% extends "layout.html" %}
+
+{% block title %}Dashboard{% endblock %}
+
+{% block content %}
+<div class="dashboard">
+    <div class="hero-section">
+        <div class="hero-content">
+            <h1><i class="fas fa-history"></i> Historical Event Analyzer</h1>
+            <p class="subtitle">AI-powered deep research assistant for historical analysis</p>
+            <p class="description">
+                Upload historical documents, analyze multiple scholarly viewpoints, 
+                generate timelines, and ask deep research questions.
+            </p>
+            <div class="hero-buttons">
+                <a href="{{ url_for('upload_page') }}" class="btn btn-primary">
+                    <i class="fas fa-upload"></i> Upload Document
+                </a>
+                <a href="{{ url_for('analyze_page') }}" class="btn btn-secondary">
+                    <i class="fas fa-chart-line"></i> Start Analysis
+                </a>
+            </div>
+        </div>
+        <div class="hero-image">
+            <i class="fas fa-landmark"></i>
+        </div>
+    </div>
+
+    <div class="features-section">
+        <h2>Core Features</h2>
+        <div class="features-grid">
+            <div class="feature-card">
+                <div class="feature-icon">
+                    <i class="fas fa-file-pdf"></i>
+                </div>
+                <h3>Document Processing</h3>
+                <p>Upload PDFs, articles, and text documents. Extract and clean text automatically.</p>
+            </div>
+            
+            <div class="feature-card">
+                <div class="feature-icon">
+                    <i class="fas fa-compress-arrows-alt"></i>
+                </div>
+                <h3>Smart Summarization</h3>
+                <p>Get concise summaries, key points, and timeline extraction from complex documents.</p>
+            </div>
+            
+            <div class="feature-card">
+                <div class="feature-icon">
+                    <i class="fas fa-users"></i>
+                </div>
+                <h3>Scholarly Viewpoints</h3>
+                <p>Analyze different historical interpretations and compare perspectives.</p>
+            </div>
+            
+            <div class="feature-card">
+                <div class="feature-icon">
+                    <i class="fas fa-robot"></i>
+                </div>
+                <h3>Deep Research Q&A</h3>
+                <p>Ask complex questions and get answers based on document content with citations.</p>
+            </div>
+            
+            <div class="feature-card">
+                <div class="feature-icon">
+                    <i class="fas fa-timeline"></i>
+                </div>
+                <h3>Timeline Generator</h3>
+                <p>Automatically extract and visualize chronological events from documents.</p>
+            </div>
+            
+            <div class="feature-card">
+                <div class="feature-icon">
+                    <i class="fas fa-book"></i>
+                </div>
+                <h3>Source References</h3>
+                <p>Trace answers back to original sources with proper citation tracking.</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="quick-start-section">
+        <h2>How to Use</h2>
+        <div class="steps">
+            <div class="step">
+                <div class="step-number">1</div>
+                <h3>Upload Documents</h3>
+                <p>Upload PDFs, text files, or paste article URLs about historical events.</p>
+            </div>
+            <div class="step">
+                <div class="step-number">2</div>
+                <h3>Analyze Content</h3>
+                <p>Get summaries, key points, timelines, and scholarly viewpoints.</p>
+            </div>
+            <div class="step">
+                <div class="step-number">3</div>
+                <h3>Ask Questions</h3>
+                <p>Use the Q&A system to explore deep research questions.</p>
+            </div>
+            <div class="step">
+                <div class="step-number">4</div>
+                <h3>Compare Perspectives</h3>
+                <p>Analyze different historical interpretations side by side.</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="sample-data-section">
+        <h2>Try Sample Analysis</h2>
+        <div class="sample-cards">
+            <div class="sample-card">
+                <h3>World War II</h3>
+                <p>Analyze causes, events, and consequences of WWII from multiple perspectives.</p>
+                <button class="btn btn-outline" onclick="loadSample('ww2')">
+                    <i class="fas fa-play"></i> Load Sample
+                </button>
+            </div>
+            <div class="sample-card">
+                <h3>French Revolution</h3>
+                <p>Explore different historical interpretations of the French Revolution.</p>
+                <button class="btn btn-outline" onclick="loadSample('french_revolution')">
+                    <i class="fas fa-play"></i> Load Sample
+                </button>
+            </div>
+            <div class="sample-card">
+                <h3>Cold War</h3>
+                <p>Compare traditional vs. revisionist views of Cold War origins.</p>
+                <button class="btn btn-outline" onclick="loadSample('cold_war')">
+                    <i class="fas fa-play"></i> Load Sample
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function loadSample(sampleType) {
+    // Show loading
+    alert('Loading sample analysis for ' + sampleType + '...');
+    // In a real implementation, this would make an API call
+    window.location.href = '/analyze?sample=' + sampleType;
+}
+</script>
+{% endblock %}

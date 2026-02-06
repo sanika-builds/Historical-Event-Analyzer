@@ -1,0 +1,287 @@
+{% extends "layout.html" %}
+
+{% block title %}Upload Documents{% endblock %}
+
+{% block content %}
+<div class="upload-container">
+    <div class="upload-header">
+        <h1><i class="fas fa-upload"></i> Upload Historical Documents</h1>
+        <p class="subtitle">Upload PDFs, text files, or enter article URLs for analysis</p>
+    </div>
+
+    <div class="upload-options">
+        <div class="upload-card">
+            <div class="upload-icon">
+                <i class="fas fa-file-pdf"></i>
+            </div>
+            <h3>Upload Files</h3>
+            <p>Upload PDF, TXT, or DOCX files from your computer</p>
+            
+            <form id="uploadForm" enctype="multipart/form-data">
+                <div class="file-upload-area" id="dropArea">
+                    <i class="fas fa-cloud-upload-alt"></i>
+                    <p>Drag & drop files here or click to browse</p>
+                    <input type="file" id="fileInput" name="file" accept=".pdf,.txt,.docx,.md,.html" hidden>
+                    <button type="button" class="btn btn-outline" onclick="document.getElementById('fileInput').click()">
+                        Browse Files
+                    </button>
+                </div>
+                <div class="selected-files" id="selectedFiles"></div>
+                <div class="upload-progress" id="uploadProgress" style="display: none;">
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="progressFill"></div>
+                    </div>
+                    <p id="progressText">Uploading...</p>
+                </div>
+                <button type="submit" class="btn btn-primary upload-btn" id="uploadBtn">
+                    <i class="fas fa-upload"></i> Upload & Process
+                </button>
+            </form>
+        </div>
+
+        <div class="upload-card">
+            <div class="upload-icon">
+                <i class="fas fa-link"></i>
+            </div>
+            <h3>Enter URLs</h3>
+            <p>Paste URLs of articles or online documents</p>
+            
+            <form id="urlForm">
+                <div class="form-group">
+                    <label for="urlInput">Article URL</label>
+                    <input type="url" id="urlInput" class="form-control" placeholder="https://example.com/historical-article" required>
+                </div>
+                <div class="form-group">
+                    <label for="urlTopic">Topic / Event</label>
+                    <input type="text" id="urlTopic" class="form-control" placeholder="e.g., World War 2, Renaissance" required>
+                </div>
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-download"></i> Fetch & Analyze
+                </button>
+            </form>
+        </div>
+
+        <div class="upload-card">
+            <div class="upload-icon">
+                <i class="fas fa-keyboard"></i>
+            </div>
+            <h3>Paste Text</h3>
+            <p>Directly paste historical text for analysis</p>
+            
+            <form id="textForm">
+                <div class="form-group">
+                    <label for="textInput">Historical Text</label>
+                    <textarea id="textInput" class="form-control" rows="8" placeholder="Paste historical text here..." required></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="textTopic">Topic / Event</label>
+                    <input type="text" id="textTopic" class="form-control" placeholder="e.g., Industrial Revolution" required>
+                </div>
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-play"></i> Analyze Text
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <div class="upload-results" id="uploadResults" style="display: none;">
+        <h2>Processing Results</h2>
+        <div class="result-card">
+            <div class="result-header">
+                <h3 id="resultTitle">Document Processed</h3>
+                <span class="badge badge-success" id="resultStatus">Success</span>
+            </div>
+            <div class="result-content">
+                <div class="result-section">
+                    <h4>Summary</h4>
+                    <p id="resultSummary">Loading...</p>
+                </div>
+                <div class="result-section">
+                    <h4>Key Points</h4>
+                    <ul id="resultKeyPoints"></ul>
+                </div>
+                <div class="result-actions">
+                    <button class="btn btn-primary" onclick="proceedToAnalysis()">
+                        <i class="fas fa-chart-bar"></i> Full Analysis
+                    </button>
+                    <button class="btn btn-secondary" onclick="goToQnA()">
+                        <i class="fas fa-question-circle"></i> Ask Questions
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="supported-formats">
+        <h3>Supported Formats</h3>
+        <div class="formats-list">
+            <span class="format-badge"><i class="fas fa-file-pdf"></i> PDF</span>
+            <span class="format-badge"><i class="fas fa-file-alt"></i> TXT</span>
+            <span class="format-badge"><i class="fas fa-file-word"></i> DOCX</span>
+            <span class="format-badge"><i class="fas fa-file-code"></i> HTML</span>
+            <span class="format-badge"><i class="fas fa-link"></i> URLs</span>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const dropArea = document.getElementById('dropArea');
+    const fileInput = document.getElementById('fileInput');
+    const uploadForm = document.getElementById('uploadForm');
+    
+    // Drag and drop functionality
+    ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+        dropArea.addEventListener(eventName, preventDefaults, false);
+    });
+
+    function preventDefaults(e) {
+        e.preventDefault();
+        e.stopPropagation();
+    }
+
+    ['dragenter', 'dragover'].forEach(eventName => {
+        dropArea.addEventListener(eventName, highlight, false);
+    });
+
+    ['dragleave', 'drop'].forEach(eventName => {
+        dropArea.addEventListener(eventName, unhighlight, false);
+    });
+
+    function highlight() {
+        dropArea.classList.add('highlight');
+    }
+
+    function unhighlight() {
+        dropArea.classList.remove('highlight');
+    }
+
+    dropArea.addEventListener('drop', handleDrop, false);
+
+    function handleDrop(e) {
+        const dt = e.dataTransfer;
+        const files = dt.files;
+        fileInput.files = files;
+        updateSelectedFiles(files);
+    }
+
+    fileInput.addEventListener('change', function() {
+        updateSelectedFiles(this.files);
+    });
+
+    function updateSelectedFiles(files) {
+        const selectedFilesDiv = document.getElementById('selectedFiles');
+        selectedFilesDiv.innerHTML = '';
+        
+        Array.from(files).forEach(file => {
+            const fileElement = document.createElement('div');
+            fileElement.className = 'selected-file';
+            fileElement.innerHTML = `
+                <i class="fas fa-file"></i>
+                <span>${file.name} (${(file.size / 1024 / 1024).toFixed(2)} MB)</span>
+                <i class="fas fa-times" onclick="removeFile(this)"></i>
+            `;
+            selectedFilesDiv.appendChild(fileElement);
+        });
+    }
+
+    // Form submission
+    uploadForm.addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        const formData = new FormData();
+        const file = fileInput.files[0];
+        
+        if (!file) {
+            alert('Please select a file first.');
+            return;
+        }
+        
+        formData.append('file', file);
+        
+        // Show progress
+        const progressDiv = document.getElementById('uploadProgress');
+        const progressFill = document.getElementById('progressFill');
+        const progressText = document.getElementById('progressText');
+        const uploadBtn = document.getElementById('uploadBtn');
+        
+        progressDiv.style.display = 'block';
+        uploadBtn.disabled = true;
+        uploadBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
+        
+        // Simulate progress (in real app, use actual upload progress)
+        let progress = 0;
+        const interval = setInterval(() => {
+            progress += 10;
+            progressFill.style.width = progress + '%';
+            progressText.textContent = `Uploading... ${progress}%`;
+            
+            if (progress >= 90) {
+                clearInterval(interval);
+            }
+        }, 200);
+        
+        // Make API call
+        fetch('/api/upload', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            clearInterval(interval);
+            progressFill.style.width = '100%';
+            progressText.textContent = 'Complete!';
+            
+            if (data.success) {
+                showUploadResults(data);
+                // Store document ID for later use
+                localStorage.setItem('currentDocumentId', data.document_id);
+            } else {
+                alert('Error: ' + data.error);
+                uploadBtn.disabled = false;
+                uploadBtn.innerHTML = '<i class="fas fa-upload"></i> Upload & Process';
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Upload failed. Please try again.');
+            uploadBtn.disabled = false;
+            uploadBtn.innerHTML = '<i class="fas fa-upload"></i> Upload & Process';
+        });
+    });
+});
+
+function removeFile(element) {
+    element.parentElement.remove();
+    document.getElementById('fileInput').value = '';
+}
+
+function showUploadResults(data) {
+    const resultsDiv = document.getElementById('uploadResults');
+    const title = document.getElementById('resultTitle');
+    const summary = document.getElementById('resultSummary');
+    const keyPoints = document.getElementById('resultKeyPoints');
+    
+    title.textContent = `Document: ${data.filename}`;
+    summary.textContent = data.summary;
+    
+    keyPoints.innerHTML = '';
+    data.key_points.forEach(point => {
+        const li = document.createElement('li');
+        li.textContent = point;
+        keyPoints.appendChild(li);
+    });
+    
+    resultsDiv.style.display = 'block';
+    resultsDiv.scrollIntoView({ behavior: 'smooth' });
+}
+
+function proceedToAnalysis() {
+    window.location.href = '/analyze';
+}
+
+function goToQnA() {
+    window.location.href = '/qna';
+}
+</script>
+{% endblock %}
